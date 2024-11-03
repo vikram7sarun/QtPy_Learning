@@ -1,0 +1,28 @@
+Key Features for the Code Review and Quality Assurance Tool
+-Code Analysis and Linting: Integrate linters (e.g., pylint, flake8) to analyze code and report issues.
+-Static Code Analysis: Highlight common errors, security vulnerabilities, and potential optimizations using tools like bandit for Python.
+-Code Metrics and Complexity Analysis: Calculate code complexity metrics (e.g., cyclomatic complexity) to identify complex functions or modules.
+-Automated Style Checks: Check code against style guides (e.g., PEP 8 for Python).
+-Review Dashboard: Present issues, metrics, and improvement suggestions in an easy-to-navigate UI.
+
+
+Explanation of the Code
+File Selection:
+
+A button to open a file dialog, allowing users to select a Python file for review. The selected file path is displayed and stored for analysis.
+Analysis Options:
+
+A dropdown menu (QComboBox) allows users to select the type of code analysis they want to run (e.g., pylint, flake8, radon, bandit).
+Running the Analysis:
+
+Each analysis option calls a different function that executes the selected tool using Python’s subprocess module. The output from each tool is captured and displayed in a QTextEdit widget.
+Result Display:
+
+The results from each tool (e.g., linting issues, complexity metrics, security warnings) are shown in a QTextEdit widget, providing users with detailed insights into the code quality.
+Step 3: Adding Analysis for Each Tool
+Each tool’s function runs the command-line version of the tool using subprocess.run:
+
+Pylint: Reports code issues and adheres to Python coding standards.
+Flake8: Checks code style against PEP 8 and finds potential issues.
+Radon: Computes cyclomatic complexity, helping to identify complex functions.
+Bandit: Analyzes code for potential security vulnerabilities.
