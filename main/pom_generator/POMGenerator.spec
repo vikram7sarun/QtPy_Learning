@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['C:\\Codebase\\QtPy_Learning\\main\\pom_builder\\main\\pom_generator.py'],
+    ['C:\\Codebase\\Personal\\QtPy_Learning\\main\\pom_generator\\pom_generator.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Codebase\\QtPy_Learning\\main\\pom_builder\\main\\temp_playwright\\playwright', 'playwright')],
+    datas=[('C:\\Codebase\\Personal\\QtPy_Learning\\main\\pom_generator\\temp_playwright\\playwright', 'playwright')],
     hiddenimports=['playwright', 'playwright.sync_api', 'PyQt5', 'PyQt5.QtWidgets', 'PyQt5.QtGui', 'PyQt5.QtCore'],
     hookspath=[],
     hooksconfig={},
