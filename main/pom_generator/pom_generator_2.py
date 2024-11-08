@@ -20,9 +20,9 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QTextEdit, QFileDialog, QMessageBox, QStatusBar,
                             QTabWidget, QComboBox, QProgressBar, QMenu, QMenuBar,
                             QDialog, QGridLayout, QCheckBox)
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+#---
+#---
 
 class POMGenerator(QMainWindow):
     def __init__(self):
@@ -30,13 +30,12 @@ class POMGenerator(QMainWindow):
         self.setWindowIcon(QIcon('app_icon.ico'))
         self.move_count = 0
         self.previous_text = ""
-        self.template = None
         self.init_ui()
         self.set_styles()
 
     def init_ui(self):
         self.setWindowTitle('NessQ POM Generator')
-        self.setGeometry(100, 100, 650, 800)
+        self.setGeometry(100, 100, 800, 600)
 
         # Create main widget and layout
         main_widget = QWidget()
@@ -64,33 +63,18 @@ class POMGenerator(QMainWindow):
 
         # Middle Section
         middle_layout = QHBoxLayout()
-
-        # Move Button
         self.move_button = QPushButton('Move Selected Lines')
         self.move_button.clicked.connect(self.move_selected_lines)
-        middle_layout.addWidget(self.move_button)
 
-        # Class Name Entry with reduced width
-        class_name_layout = QHBoxLayout()
         self.class_name_entry = QLineEdit()
         self.class_name_entry.setPlaceholderText("Enter Class Name")
-        self.class_name_entry.setFixedWidth(150)  # Set fixed width
-        middle_layout.addWidget(self.class_name_entry)
 
-        # Language Dropdown
-        self.language_combo = QComboBox()
-        self.language_combo.addItems(['Python', 'Java', 'C#'])
-        self.language_combo.setCurrentText('Python')
-        self.language_combo.setFixedWidth(100)  # Set fixed width
-        middle_layout.addWidget(self.language_combo)
-
-        # Generate button
         self.generate_button = QPushButton('Generate POM')
         self.generate_button.clicked.connect(self.generate_pom)
-        middle_layout.addWidget(self.generate_button)
 
-        # Add spacing between elements
-        middle_layout.setSpacing(10)
+        middle_layout.addWidget(self.move_button)
+        middle_layout.addWidget(self.class_name_entry)
+        middle_layout.addWidget(self.generate_button)
         layout.addLayout(middle_layout)
 
         # Moved Text Area
@@ -114,7 +98,9 @@ class POMGenerator(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage('Ready')
+
     def set_styles(self):
+        # Set color scheme
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #f5f5f5;
@@ -150,17 +136,6 @@ class POMGenerator(QMainWindow):
 
     def fetch_selectors(self):
         try:
-            # Check if output text area has content
-            if self.output_text.toPlainText().strip():
-                reply = QMessageBox.question(self, 'Clear Content',
-                                             'Text area contains content. Do you want to clear it and fetch new selectors?',
-                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
-                if reply == QMessageBox.Yes:
-                    self.output_text.clear()
-                else:
-                    return
-
             priorities = self.get_priorities()
             if not priorities:
                 self.show_error_popup("Please specify at least one priority.")
@@ -173,10 +148,6 @@ class POMGenerator(QMainWindow):
                                   in all_selectors.items() if priority in priorities}
 
             self.display_selectors(filtered_selectors)
-
-            # Ensure focus is on the output text area
-            self.output_text.setFocus()
-
             self.update_status("Selectors fetched successfully.")
 
         except Exception as e:
@@ -252,26 +223,11 @@ class POMGenerator(QMainWindow):
         return None
 
     def display_selectors(self, selectors):
-        # Clear the output text
         self.output_text.clear()
-
-        # Build the text content
-        text_content = ""
         for priority, sel_list in selectors.items():
-            text_content += f"\n{priority} Selectors:\n\n"
+            self.output_text.append(f"\n{priority} Selectors:\n")
             for selector in sel_list:
-                text_content += f"{selector}\n"
-
-        # Set the text content
-        self.output_text.setText(text_content)
-
-        # Move cursor to the start
-        cursor = self.output_text.textCursor()
-        cursor.movePosition(cursor.Start)
-        self.output_text.setTextCursor(cursor)
-
-        # Ensure scrollbar is at the top
-        self.output_text.verticalScrollBar().setValue(0)
+                self.output_text.append(f"{selector}\n")
 
     def move_selected_lines(self):
         cursor = self.output_text.textCursor()
@@ -283,38 +239,15 @@ class POMGenerator(QMainWindow):
 
         # Check if moved_text contains POM structure
         moved_text_content = self.moved_text.toPlainText()
-        if "# Locators" in moved_text_content or "# Functions" in moved_text_content:
-            reply = QMessageBox.question(
-                self,
-                'Clear Content',
-                'Text area contains a POM structure. Do you want to clear it to move new selectors?',
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-
-            if reply == QMessageBox.Yes:
-                self.moved_text.clear()
-                self.move_count = 0
-            else:
-                return
+        if "# Locators" in moved_text_content and "# Functions" in moved_text_content:
+            QMessageBox.information(self, "Move Selector", "Clear POM before moving new selector.")
+            return
 
         # Check for duplicates
         existing_text = self.moved_text.toPlainText().strip().splitlines()
         if selected_text.strip() in existing_text:
-            QMessageBox.information(
-                self,
-                "Duplicate Selector",
-                "This selector has already been added."
-            )
-            return
-
-        # Validate if the selected text is a valid XPath selector
-        if not selected_text.strip().startswith("//"):
-            QMessageBox.warning(
-                self,
-                "Invalid Selection",
-                "Please select a valid XPath selector starting with '//'."
-            )
+            QMessageBox.information(self, "Duplicate Selector",
+                                    "Duplicate selector! This selector is already added.")
             return
 
         # Add the text and highlight it in the source
@@ -326,92 +259,26 @@ class POMGenerator(QMainWindow):
         cursor.mergeCharFormat(format)
 
         # Update move count
-        self.move_count += 1
+        self.move_count += len(selected_text.strip().splitlines())
         self.update_status(f"Moved Selector: {self.move_count}")
 
     def generate_pom(self):
-        try:
-            # Get content from moved_text (text area 2)
-            moved_text_content = self.moved_text.toPlainText().strip()
+        if "# Locators" in self.moved_text.toPlainText() and "# Functions" in self.moved_text.toPlainText():
+            self.moved_text.clear()
+            QMessageBox.information(self, "Generate POM", "Move the Selectors to generate the POM again.")
+            return
 
-            # Check if content exists
-            if not moved_text_content:
-                self.show_error_popup("No content to generate POM. Please select and move selectors first.")
-                return
+        class_name = self.class_name_entry.text()
+        if not class_name or class_name == "Enter Class Name":
+            class_name = "Test"
 
-            # Check if the content contains POM structure
-            if "# Locators" in moved_text_content or "# Functions" in moved_text_content:
-                reply = QMessageBox.question(
-                    self,
-                    'Clear Content',
-                    'Text area contains a POM structure. Do you want to clear it and create a new POM?',
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No
-                )
-
-                if reply == QMessageBox.Yes:
-                    self.moved_text.clear()
-                    self.update_status("Please select and move selectors to generate a new POM.")
-                return
-
-            # If we reach here, we have valid selectors to process
-            class_name = self.class_name_entry.text()
-            if not class_name or class_name == "Enter Class Name":
-                class_name = "Test"
-
-            # Get selectors from moved text
-            selectors = moved_text_content.splitlines()
-
-            # Validate selectors
-            valid_selectors = [s for s in selectors if s.strip() and s.startswith("//")]
-            if not valid_selectors:
-                self.show_error_popup("No valid selectors found.Clear POM and Please select and move valid selectors.")
-                return
-
-            # Generate POM code based on selected language
-            pom_code = self.generate_pom_code(class_name, valid_selectors)
-            if pom_code:  # Only update if generation was successful
-                self.moved_text.clear()
-                self.moved_text.setText(pom_code)
-                self.update_status(f"POM generated successfully in {self.language_combo.currentText()}")
-
-        except Exception as e:
-            self.show_error_popup(f"Error generating POM: {str(e)}")
-            self.update_status("POM generation failed.")
-
-    def clear_generated_pom(self):
-        if self.moved_text.toPlainText().strip():
-            reply = QMessageBox.question(
-                self,
-                'Clear Content',
-                'Are you sure you want to clear the current content?',
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-
-            if reply == QMessageBox.Yes:
-                removed_text = self.moved_text.toPlainText().strip()
-                if removed_text:
-                    self.move_count = 0
-                    self.moved_text.clear()
-                    self.update_status("Content cleared. Ready for new selectors.")
-        else:
-            self.update_status("Nothing to clear.")
+        selectors = self.moved_text.toPlainText().strip().splitlines()
+        pom_code = self.generate_pom_code(class_name, selectors)
+        self.moved_text.clear()
+        self.moved_text.setText(pom_code)
+        self.update_status("POM generated successfully.")
 
     def generate_pom_code(self, class_name, selectors):
-        selected_language = self.language_combo.currentText()
-
-        if selected_language == 'Python':
-            return self.generate_python_pom(class_name, selectors)
-        elif selected_language == 'Java':
-            return self.generate_java_pom(class_name, selectors)
-        elif selected_language == 'C#':
-            return self.generate_csharp_pom(class_name, selectors)
-
-        return self.generate_python_pom(class_name, selectors)
-
-    def generate_python_pom(self, class_name, selectors):
-            # Existing Python POM generation code...
         elements = []
         for selector in selectors:
             name = self.extract_name(selector)
@@ -451,97 +318,6 @@ class {class_name.capitalize()}Page(Selenium_Driver):
 
         return pom_code
 
-    def generate_java_pom(self, class_name, selectors):
-        elements = []
-        for selector in selectors:
-            name = self.extract_name(selector)
-            elements.append({
-                'name': name,
-                'type': 'xpath',
-                'locator': selector
-            })
-
-        pom_code = f"""import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-
-public class {class_name.capitalize()}Page {{
-private WebDriver driver;
-private WebDriverWait wait;
-
-    // Locators
-    """
-        for element in elements:
-            locator_name = f"__{element['name']}"
-            pom_code += f"    private final String {locator_name} = \"{element['locator']}\";\n"
-
-            pom_code += f"""
-        public {class_name.capitalize()}Page(WebDriver driver) {{
-            this.driver = driver;
-            this.wait = new WebDriverWait(driver, 10);
-        }}
-
-        // Functions
-    """
-        for element in elements:
-            function_name = element['name']
-            pom_code += f"""
-        public WebElement {function_name}() {{
-            return wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath({function_name})));
-        }}
-    """
-            pom_code += "}\n"
-            return pom_code
-
-    def generate_csharp_pom(self, class_name, selectors):
-        elements = []
-        for selector in selectors:
-            name = self.extract_name(selector)
-            elements.append({
-                'name': name,
-                'type': 'xpath',
-                'locator': selector
-            })
-
-        pom_code = f"""using OpenQA.Selenium;
-using OpenQA.Selenium.Support.UI;
-using System;
-
-namespace Pages
-{{
-    public class {class_name.capitalize()}Page
-    {{
-        private IWebDriver _driver;
-        private WebDriverWait _wait;
-
-        // Locators
-"""
-        for element in elements:
-            locator_name = f"__{element['name']}"
-            pom_code += f"        private readonly string {locator_name} = \"{element['locator']}\";\n"
-
-        pom_code += f"""
-    public {class_name.capitalize()}Page(IWebDriver driver)
-    {{
-        _driver = driver;
-        _wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-    }}
-
-    // Functions
-    """
-        for element in elements:
-            function_name = element['name']
-            pom_code += f"""
-    public IWebElement {function_name}()
-    {{
-        return _wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementExists(By.XPath({function_name})));
-    }}
-    """
-        pom_code += "    }\n}"
-        return pom_code
-
     def extract_name(self, selector):
         if "@id='" in selector:
             return selector.split("@id='")[1].split("']")[0]
@@ -557,30 +333,19 @@ namespace Pages
             return "custom_selector"
 
     def save_to_file(self):
-        try:
-            content = self.moved_text.toPlainText()
-            if not content.strip():
-                self.show_error_popup("No content available to save.")
-                return
+        content = self.moved_text.toPlainText()
+        if not content.strip():
+            self.show_error_popup("No content available to save.")
+            return
 
-            # Adjust file extension based on selected language
-            file_filter = "Python Files (*.py)"
-            if self.language_combo.currentText() == "Java":
-                file_filter = "Java Files (*.java)"
-            elif self.language_combo.currentText() == "C#":
-                file_filter = "C# Files (*.cs)"
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save POM", "", "Python Files (*.py)")
 
-            file_path, _ = QFileDialog.getSaveFileName(
-                self, "Save POM", "", file_filter)
-
-            if file_path:
-                with open(file_path, 'w', encoding='utf-8') as file:
-                    file.write(content)
-                QMessageBox.information(self, "Saved", f"POM saved as {file_path}")
-                self.update_status("POM saved successfully.")
-
-        except Exception as e:
-            self.show_error_popup(f"Error saving file: {str(e)}")
+        if file_path:
+            with open(file_path, 'w') as file:
+                file.write(content)
+            QMessageBox.information(self, "Saved", f"POM saved as {file_path}")
+            self.update_status("POM saved successfully.")
 
     def clear_generated_pom(self):
         removed_text = self.moved_text.toPlainText().strip()
@@ -606,15 +371,8 @@ namespace Pages
 
         self.previous_text = current_text
 
-    def update_status(self, message):
-        self.status_bar.showMessage(message)
-
-    def show_error_popup(self, message):
-        QMessageBox.critical(self, 'Error', message)
-
 
 if __name__ == '__main__':
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
     app = QApplication(sys.argv)
     pom_generator = POMGenerator()
     pom_generator.show()
