@@ -114,67 +114,109 @@ class POMGenerator(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage('Ready')
+
+        # Add object names to buttons for specific styling
+        self.fetch_button.setObjectName("fetch_button")
+        self.generate_button.setObjectName("generate_button")
+        self.clear_button.setObjectName("clear_button")
+
     def set_styles(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #ffffff;
+                background-color: #f8f9fa;
             }
             QPushButton {
-                background-color: #f0f0f0;
-                border: 1px solid #cccccc;
-                padding: 5px;
+                background-color: #6c757d;
+                color: white;
+                border: 1px solid #5a6268;
+                padding: 6px;
                 min-width: 80px;
                 border-radius: 4px;
+                font-weight: 500;
             }
             QPushButton:hover {
-                background-color: #e0e0e0;
-                border: 1px solid #b3b3b3;
+                background-color: #5a6268;
+                border: 1px solid #545b62;
             }
             QPushButton:pressed {
-                background-color: #d0d0d0;
-                border: 2px solid #999999;
-                padding: 6px 4px 4px 6px;
+                background-color: #545b62;
+                border: 2px solid #4e555b;
+                padding: 7px 5px 5px 7px;
+            }
+            QPushButton#fetch_button, QPushButton#generate_button {
+                background-color: #28a745;
+                border: 1px solid #28a745;
+            }
+            QPushButton#fetch_button:hover, QPushButton#generate_button:hover {
+                background-color: #218838;
+                border: 1px solid #1e7e34;
+            }
+            QPushButton#fetch_button:pressed, QPushButton#generate_button:pressed {
+                background-color: #1e7e34;
+                border: 2px solid #1c7430;
+            }
+            QPushButton#clear_button {
+                background-color: #dc3545;
+                border: 1px solid #dc3545;
+            }
+            QPushButton#clear_button:hover {
+                background-color: #c82333;
+                border: 1px solid #bd2130;
+            }
+            QPushButton#clear_button:pressed {
+                background-color: #bd2130;
+                border: 2px solid #b21f2d;
             }
             QPushButton:disabled {
-                background-color: #f5f5f5;
-                border: 1px solid #dddddd;
-                color: #999999;
+                background-color: #cccccc;
+                border: 1px solid #bbbbbb;
+                color: #666666;
             }
             QLineEdit {
                 background-color: #ffffff;
-                border: 1px solid #cccccc;
-                padding: 5px;
-                border-radius: 3px;
+                border: 1px solid #ced4da;
+                padding: 6px;
+                border-radius: 4px;
+                color: #495057;
             }
             QLineEdit:focus {
-                border: 2px solid #999999;
+                border: 2px solid #80bdff;
                 background-color: #ffffff;
             }
             QTextEdit {
                 background-color: #ffffff;
-                border: 1px solid #cccccc;
-                border-radius: 3px;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 4px;
+                color: #495057;
             }
             QTextEdit:focus {
-                border: 2px solid #999999;
+                border: 2px solid #80bdff;
                 background-color: #ffffff;
             }
             QLabel {
-                color: #333333;
-                font-weight: normal;
+                color: #495057;
+                font-weight: 500;
+                padding: 4px;
             }
             QComboBox {
-                background-color: #f0f0f0;
-                border: 1px solid #cccccc;
-                padding: 4px;
-                border-radius: 3px;
+                background-color: #ffffff;
+                border: 1px solid #ced4da;
+                padding: 5px;
+                border-radius: 4px;
+                color: #495057;
+                min-width: 100px;
             }
             QComboBox:hover {
-                background-color: #e0e0e0;
-                border: 1px solid #b3b3b3;
+                border: 1px solid #b8bdc2;
+                background-color: #f8f9fa;
+            }
+            QComboBox:on {
+                border: 2px solid #80bdff;
             }
             QComboBox::drop-down {
                 border: none;
+                padding-right: 4px;
             }
             QComboBox::down-arrow {
                 width: 12px;
@@ -182,9 +224,17 @@ class POMGenerator(QMainWindow):
                 margin-right: 5px;
             }
             QStatusBar {
-                background-color: #f5f5f5;
-                color: #333333;
-                border-top: 1px solid #dddddd;
+                background-color: #f8f9fa;
+                color: #495057;
+                border-top: 1px solid #dee2e6;
+                padding: 4px;
+            }
+            QMessageBox {
+                background-color: #ffffff;
+            }
+            QMessageBox QPushButton {
+                min-width: 70px;
+                padding: 5px 15px;
             }
         """)
 
