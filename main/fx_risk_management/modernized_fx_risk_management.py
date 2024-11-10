@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from qtpy.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout, QMessageBox
 from fx_calculator import calculate_position_size
 
@@ -6,11 +7,16 @@ class FXRiskManagement(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FX Risk Management Tool")
-        self.setGeometry(100, 100, 300, 400)
+        self.setGeometry(100, 100, 400, 300)
 
-        # Layout setup
+        # Layout setup with adjusted margins and spacing
         layout = QVBoxLayout()
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(10)
+
         form_layout = QFormLayout()
+        form_layout.setContentsMargins(10, 10, 10, 10)
+        form_layout.setSpacing(8)
 
         # Account Balance
         self.account_balance_input = QLineEdit()
@@ -32,46 +38,40 @@ class FXRiskManagement(QWidget):
         self.calculate_button = QPushButton("Calculate Position Size")
         self.calculate_button.clicked.connect(self.calculate_position_size)
 
-        # Result Display
-        self.result_label = QLabel("Position Size: -")
-
-        # Add widgets to layout
+        # Adding form layout and button to main layout
         layout.addLayout(form_layout)
-        layout.addWidget(self.calculate_button)
-        layout.addWidget(self.result_label)
-        self.setLayout(layout)
+        layout.addWidget(self.calculate_button, alignment=Qt.AlignCenter)
 
+        # Set main layout
+        self.setLayout(layout)
         self.setStyleSheet("""
-            QWidget {
-                background-color: #f4f4f4;
-                font-family: Arial, sans-serif;
-            }
-            QLabel {
-                color: #333333;
-            }
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
+                    QWidget {
+                        background-color: #f4f4f4;
+                        font-family: Arial, sans-serif;
+                    }
+                    QLabel {
+                        color: #333333;
+                    }
+                    QPushButton {
+                        background-color: #4CAF50;
+                        color: white;
+                        border-radius: 5px;
+                    }
+                    QPushButton:hover {
+                        background-color: #45a049;
+                    }
+                """)
 
     def calculate_position_size(self):
         try:
-            # Retrieve inputs
             account_balance = float(self.account_balance_input.text())
             risk_percent = float(self.risk_percent_input.text())
             stop_loss_pips = float(self.stop_loss_pips_input.text())
             pip_value = float(self.pip_value_input.text())
 
-            # Calculate position size
             position_size = calculate_position_size(account_balance, risk_percent, stop_loss_pips, pip_value)
 
-            # Update the result
-            self.result_label.setText(f"Position Size: {position_size:.2f} units")
+            QMessageBox.information(self, "Position Size", f"Your position size is: {position_size:.2f} units")
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Please enter valid numeric values.")
 

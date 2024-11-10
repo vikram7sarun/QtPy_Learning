@@ -18,6 +18,7 @@ from environment_health_check_ad import HealthCheckApp
 from code_generator import TestScriptGenerator
 
 
+
 class CodeGenerator(QWidget):
     def __init__(self):
         super().__init__()

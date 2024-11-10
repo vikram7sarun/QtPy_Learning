@@ -1,0 +1,20 @@
+# config.yaml
+database:
+  url: "postgresql://user:password@localhost/test_db"
+
+selenium:
+  base_url: "https://example.com"
+  implicit_wait: 10
+  screenshot_dir: "./screenshots"
+
+healing:
+  confidence_threshold: 0.8
+  max_attempts: 3
+  strategies:
+    - css
+    - xpath
+    - relative
+    - visual
+
+websocket:
+  url: "ws://localhost:8000/ws"
