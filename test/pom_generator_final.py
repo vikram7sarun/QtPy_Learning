@@ -108,78 +108,68 @@ class SelectorTabWidget(QtWidgets.QTabWidget):
         except Exception as e:
             print(f"Error in auto_scroll_to_match: {e}")
             self.update_status("Search failed")
+
     def search_text(self, text):
         """Search and highlight text in the selectors text area"""
         try:
-            # Store current cursor position
-            cursor = self.selectors_text.textCursor()
-            initial_position = cursor.position()
-
-            # Clear previous highlighting
-            self.selectors_text.blockSignals(True)  # Block signals temporarily
-            cursor.select(QtGui.QTextCursor.Document)
-            format = QtGui.QTextCharFormat()
-            format.setBackground(QtGui.QColor("white"))
-            cursor.mergeCharFormat(format)
+            # Clear previous highlighting first
+            self.clear_highlighting()
 
             if not text.strip():
-                cursor.setPosition(initial_position)
-                self.selectors_text.setTextCursor(cursor)
-                self.selectors_text.blockSignals(False)  # Restore signals
                 return
 
-            # Reset cursor to start
+            # Create extra selections for highlighting
+            extra_selections = []
+
+            # Create format for highlighting
+            format = QtGui.QTextCharFormat()
+            format.setBackground(QtGui.QColor("yellow"))
+
+            # Search for all occurrences
+            cursor = self.selectors_text.textCursor()
             cursor.movePosition(QtGui.QTextCursor.Start)
             self.selectors_text.setTextCursor(cursor)
 
-            # Prepare highlight format
-            highlight_format = QtGui.QTextCharFormat()
-            highlight_format.setBackground(QtGui.QColor("yellow"))
-
-            # Find and highlight all occurrences
             found = False
-            current_text = self.selectors_text.toPlainText()
-
-            # Create a new cursor for searching
-            search_cursor = QtGui.QTextCursor(self.selectors_text.document())
-            search_cursor.movePosition(QtGui.QTextCursor.Start)
-
             while True:
-                # Find next occurrence
-                search_cursor = self.selectors_text.document().find(text, search_cursor)
-                if search_cursor.isNull():
+                cursor = self.selectors_text.document().find(text, cursor)
+                if cursor.isNull():
                     break
 
+                selection = QtWidgets.QTextEdit.ExtraSelection()
+                selection.format = format
+                selection.cursor = cursor
+                extra_selections.append(selection)
                 found = True
-                search_cursor.mergeCharFormat(highlight_format)
 
-            # Reset cursor position if no matches
+            # Apply the highlights
+            self.selectors_text.setExtraSelections(extra_selections)
+
             if not found:
-                cursor.setPosition(initial_position)
-                self.selectors_text.setTextCursor(cursor)
-                self.selectors_text.blockSignals(False)  # Restore signals
                 QtWidgets.QMessageBox.information(
                     self,
                     "Search Result",
                     "No matches found.",
                     QtWidgets.QMessageBox.Ok
                 )
-            else:
-                self.update_status(f"Found matches for: {text}")
-
-            self.selectors_text.blockSignals(False)  # Restore signals
 
         except Exception as e:
             print(f"Error in search_text: {e}")
-            self.update_status("Search failed")
-
-
 
     def clear_highlighting(self):
         """Clear all search highlighting"""
         try:
+            # Clear extra selections (highlighted text)
             self.selectors_text.setExtraSelections([])
+
+            # Reset text format to default
             cursor = self.selectors_text.textCursor()
+            cursor.select(QtGui.QTextCursor.Document)
+            format = QtGui.QTextCharFormat()
+            format.setBackground(QtGui.QColor("white"))
+            cursor.mergeCharFormat(format)
+
+            # Reset cursor position to start
             cursor.movePosition(QtGui.QTextCursor.Start)
             self.selectors_text.setTextCursor(cursor)
         except Exception as e:
@@ -464,7 +454,11 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
                 self.show_error_popup("Please specify at least one priority.")
                 return
 
+            # Clear any existing text and formatting
             self.selectors_text.clear()
+            # Clear any existing extra selections
+            self.selectors_text.setExtraSelections([])
+
             self.update_status("Fetching selectors...")
 
             # Get current URL
@@ -477,7 +471,13 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
             formatted_outputs = self.format_elements_info(elements, priorities)
 
             if formatted_outputs:
-                self.selectors_text.append('\n'.join(formatted_outputs))
+                # Create a new cursor and use normal text format
+                cursor = QtGui.QTextCursor(self.selectors_text.document())
+                format = QtGui.QTextCharFormat()
+                format.setBackground(QtGui.QColor("white"))  # Set background to white
+                cursor.movePosition(QtGui.QTextCursor.End)
+                cursor.insertText('\n'.join(formatted_outputs), format)
+
                 self.update_status("Selectors fetched successfully")
             else:
                 self.update_status("No selectors found for the specified priorities")
@@ -500,7 +500,7 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
                     formatted_output = []
 
                     # Add tag name
-                    formatted_output.append(f"Tag: {element_info['tag']}")
+                    formatted_output.append(f"\nTag: {element_info['tag']}")
 
                     # Add prioritized attributes first
                     for priority in priorities:
@@ -622,34 +622,23 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
         if 'tag' in element_info:
             lines.append(f"Tag: {element_info['tag']}")
 
-        # Add attributes in a specific order
-        priority_attrs = ['id', 'type', 'name', 'class', 'value', 'role']
+        # Add attributes in a specific order, excluding 'value'
+        priority_attrs = ['id', 'type', 'name', 'class', 'role']
         attrs = element_info.get('attributes', {})
 
         # First add priority attributes
         for attr in priority_attrs:
-            if attr in attrs:
+            if attr in attrs and attr != 'value':
                 lines.append(f"{attr}: {attrs[attr]}")
 
-        # Then add remaining attributes
+        # Then add remaining attributes except 'value'
         for attr, value in attrs.items():
-            if attr not in priority_attrs:
+            if attr not in priority_attrs and attr != 'value':
                 lines.append(f"{attr}: {value}")
 
         # Add text if present
         if element_info.get('text'):
             lines.append(f"text: {element_info['text']}")
-
-        # Add options for select elements
-        if 'options' in element_info:
-            lines.append("options:")
-            for option in element_info['options']:
-                lines.append(f"  - {option}")
-
-        # Add aria attributes
-        if 'aria' in element_info:
-            for attr, value in element_info['aria'].items():
-                lines.append(f"{attr}: {value}")
 
         return lines
 
@@ -997,7 +986,7 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
         return '\n'.join(output_lines)
 
     def _generate_dynamic_xpaths(self, element, attributes):
-        """Generate two unique dynamic XPaths"""
+        """Generate up to four unique dynamic XPaths"""
         try:
             tag = element.tag_name
             text = element.text.strip()
@@ -1012,6 +1001,18 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
             if attributes.get('name'):
                 xpath_candidates.append(f"//*[@name='{attributes['name']}']")
 
+            # Type and Value combination
+            if attributes.get('type') and attributes.get('value'):
+                xpath_candidates.append(f"//*[@type='{attributes['type']}' and @value='{attributes['value']}']")
+
+            # Type and ID combination
+            if attributes.get('type') and attributes.get('id'):
+                xpath_candidates.append(f"//*[@type='{attributes['type']}' and @id='{attributes['id']}']")
+
+            # Type and Name combination
+            if attributes.get('type') and attributes.get('name'):
+                xpath_candidates.append(f"//*[@type='{attributes['type']}' and @name='{attributes['name']}']")
+
             # Class-based XPath
             if attributes.get('class'):
                 classes = attributes['class'].split()
@@ -1025,17 +1026,18 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
             if text:
                 xpath_candidates.append(f"//*[text()='{text}']")
 
-            # Ensure we have at least two unique XPaths
+            # Ensure we have unique XPaths
             unique_xpaths = list(dict.fromkeys(xpath_candidates))
 
-            if len(unique_xpaths) < 2:
-                unique_xpaths.append(f"//{tag}")
+            # Return up to 4 XPaths, pad with None if needed
+            while len(unique_xpaths) < 4:
+                unique_xpaths.append(None)
 
-            return unique_xpaths[0], unique_xpaths[1] if len(unique_xpaths) > 1 else f"//{tag}"
+            return tuple(unique_xpaths[:4])
 
         except Exception as e:
             print(f"Error generating XPaths: {str(e)}")
-            return "//invalid", "//invalid"
+            return None, None, None, None
 
     def display_playwright_selectors(self, selectors):
         """Display selectors in the All Selectors tab"""
@@ -1078,6 +1080,7 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
             # Process selected text
             valid_selectors = []
             found_selectors = False
+            existing_selectors = self.moved_text.toPlainText().split('\n')
 
             for line in selected_text.replace('\u2029', '\n').split('\n'):
                 line = line.strip()
@@ -1089,17 +1092,41 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
                     selector_type, value = [part.strip() for part in line.split(':', 1)]
                     selector_type = selector_type.lower()
 
-                    # Skip empty values
-                    if not value:
+                    # Skip empty values and value attributes
+                    if not value or selector_type == 'value':
                         continue
 
                     found_selectors = True
-                    if selector_type in ['id', 'name', 'class', 'type', 'text', 'xpath1', 'xpath2']:
+
+                    # Convert text selector to xpath
+                    if selector_type == 'text':
+                        xpath_value = f"//*[text()='{value}']"
+                        selector_type = 'xpath'
+                        value = xpath_value
+
+                    # Check for duplicates
+                    if f"{selector_type}: {value}" in existing_selectors:
+                        QtWidgets.QMessageBox.warning(
+                            self,
+                            "Duplicate Selector",
+                            f"Selector already exists:\n{selector_type}: {value}"
+                        )
+                        continue
+
+                    if selector_type in ['id', 'name', 'class', 'type', 'xpath', 'xpath1', 'xpath2', 'xpath3',
+                                         'xpath4']:
                         valid_selectors.append(f"{selector_type}: {value}")
 
-                # Handle direct XPath
+                # Handle direct XPath and compound XPath expressions
                 elif line.startswith('//'):
                     found_selectors = True
+                    if line in existing_selectors:
+                        QtWidgets.QMessageBox.warning(
+                            self,
+                            "Duplicate Selector",
+                            f"Selector already exists:\n{line}"
+                        )
+                        continue
                     valid_selectors.append(line)
 
             if not found_selectors:
@@ -1112,8 +1139,7 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
                     "- class: value\n" +
                     "- type: value\n" +
                     "- text: value\n" +
-                    "- xpath1: //xpath\n" +
-                    "- xpath2: //xpath\n" +
+                    "- xpath1-4: //xpath\n" +
                     "- Direct xpath starting with '//'")
                 return
 
@@ -1291,19 +1317,16 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
                     selector_type, value = [part.strip() for part in selector.split(':', 1)]
                     selector_type = selector_type.lower()
 
-                    if selector_type in ['xpath1', 'xpath2']:
-                        # Extract meaningful name from XPath
-                        if "[text()='" in value:
-                            name = value.split("[text()='")[1].split("']")[0]
-                        elif "[@" in value:
-                            name = value.split("'")[1]
-                        else:
-                            name = f"element_{len(processed_elements)}"
+                    # Skip if it's a value attribute
+                    if selector_type == 'value':
+                        continue
 
+                    if selector_type.startswith('xpath'):
+                        name = self.extract_name_from_xpath(value)
                         processed_elements.append({
                             'name': self.sanitize_name(name),
                             'locator': value,
-                            'locator_type': 'xpath'
+                            'locator_type': 'xpath'  # Standardize to 'xpath'
                         })
                     else:
                         # Handle other selector types (id, name, class, etc.)
@@ -1317,11 +1340,26 @@ class EnhancedPOMGenerator(QtWidgets.QMainWindow):
                             element_info['locator_type'] = 'xpath'
                         processed_elements.append(element_info)
 
+                # Handle direct XPath expressions
+                elif selector.startswith('//'):
+                    name = self.extract_name_from_xpath(selector)
+                    processed_elements.append({
+                        'name': self.sanitize_name(name),
+                        'locator': selector,
+                        'locator_type': 'xpath'
+                    })
+
             return processed_elements
 
         except Exception as e:
             print(f"Error processing selectors: {e}")
             return []
+
+    def standardize_locator_type(self, locator_type):
+        """Standardize locator type to basic types"""
+        if locator_type.startswith('xpath'):
+            return 'xpath'
+        return locator_type
 
     def extract_base_name(self, value):
         """Extract base name from selector value"""
@@ -1376,10 +1414,10 @@ class {class_name.capitalize()}Page(Selenium_Driver):
         # Add functions
         for element in processed_elements:
             name = element['name']
-            locator_type = element['locator_type']
+            locator_type = self.standardize_locator_type(element['locator_type'])
 
-            pom_code += f"""    def {name}(self):
-                return self.element(self.__{name}, locatorType='{locator_type}')\n\n"""
+            pom_code += f"""     def {name}(self):
+            self.element(self.__{name}, locatorType='{locator_type}')\n\n"""
 
         return pom_code
 
